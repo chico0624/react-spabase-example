@@ -48,3 +48,24 @@ export default tseslint.config({
   },
 })
 ```
+
+
+# My notes
+## references
+[https://qiita.com/Sicut_study/items/e3abe7624af8764258b9](https://qiita.com/Sicut_study/items/e3abe7624af8764258b9)
+
+## used
+- tailwindcss
+- react
+- vite
+- stability-ai
+- supabase
+
+## setup
+```
+cp .env.example .env
+# overwrite env variables
+
+npm i
+npm run dev
+```
