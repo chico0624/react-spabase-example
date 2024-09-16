@@ -10,10 +10,15 @@ interface GenerationResponse {
   }>;
 }
 
+interface Image {
+  name: string;
+  signedUrl: string;
+}
+
 function App() {
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [images, setImages] = useState<string[]>([]);
+  const [images, setImages] = useState<Image[]>([]);
   const [prompt, setPrompt] = useState<string>("");
 
   const engineId = "stable-diffusion-v1-6";
@@ -39,11 +44,11 @@ function App() {
     /**
      * 画像一覧を取得
      */
-    const imageUrls = await Promise.all(
+    const imageObjects = await Promise.all(
       data.map(async (image) => {
 
         // NOTE: storageから取得すると.emptyFolderPlaceholderが返されることがある？ため除外する
-        if (image.name === ".emptyFolderPlaceholder") return "";
+        if (image.name === ".emptyFolderPlaceholder") return { name: "", signedUrl: "" };
 
         // NOTE: 署名付きURLを生成する
         const { data: signedUrlData, error: signedUrlError } =
@@ -53,14 +58,14 @@ function App() {
 
         if (signedUrlError) {
           console.error("Error creating signed URL:", signedUrlError);
-          return "";
+          return { name: "", signedUrl: "" };
         }
 
-        return signedUrlData?.signedUrl ?? "";
+        return { name: image.name, signedUrl: signedUrlData?.signedUrl ?? "" };
       })
     );
 
-    setImages(imageUrls);
+    setImages(imageObjects);
   };
 
   /**
@@ -123,6 +128,20 @@ function App() {
       console.error("Error uploading image:", error);
     } else {
       console.log("Image uploaded successfully");
+      fetchImages();
+    }
+  };
+
+  const deleteImage = async (fileName: string) => {
+    const { error } = await supabase.storage
+      .from("generate-image")
+      .remove([fileName]);
+
+    if (error) {
+      console.error("Error deleting image:", error);
+    } else {
+      console.log("Image deleted successfully");
+      fetchImages();
     }
   };
 
@@ -190,11 +209,18 @@ function App() {
             className="relative group aspect-square overflow-hidden rounded-lg shadow-lg transition-all duration-300 hover:scale-105"
           >
             <img
-              src={img}
+              src={img.signedUrl}
               alt={`Gallery ${index}`}
               className="w-full h-full object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent opacity-0 group-hover:opacity-70 transition-opacity duration-300" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent opacity-0 group-hover:opacity-70 transition-opacity duration-300">
+              <button
+                className="bg-white bg-opacity-20 backdrop-filter backdrop-blur-sm p-4 rounded-full shadow-md hover:bg-opacity-30 transition-all duration-300"
+                onClick={() => deleteImage(img.name)}
+              >
+                ✕
+              </button>
+            </div>
           </div>
         ))}
       </div>
